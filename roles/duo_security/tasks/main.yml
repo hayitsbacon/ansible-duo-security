@@ -1,15 +1,29 @@
 ---
-- name: Add Duo Key
-  apt_key: url=http://pkg.duosecurity.com/APT-GPG-KEY-DUO state=present
 
-- name: Add Duo Source
-  copy: src=duosecurity.list dest=/etc/apt/sources.list.d/duosecurity.list
+- name: Install OpenSSL 1.0.0 libraries
+  apt: name=libssl1.0-dev state=installed update_cache=yes
+  
+- name: Install PAM libraries
+  apt: name=libpam-dev state=installed update_cache=yes
 
-- name: Install Duo Unix SSH Integration
-  apt: name=duo-unix state=installed update_cache=yes
+- name: Download latest duo_unix
+  get_url:
+    url: https://dl.duosecurity.com/duo_unix-latest.tar.gz
+    dest: /tmp/duo_unix-latest.tar.gz
+    mode: 0440
 
-- name: Install Duo config
-  template: src=login_duo.conf.j2 dest=/etc/duo/login_duo.conf owner=sshd group=0 mode=0600
+- name: Extract duo_unix-latest.tar.gz into /tmp/duo-unix
+  unarchive:
+    src: /tmp/duo_unix-latest.tar.gz
+    dest: /tmp/duo_unix
+
+- name: Configure, make, and install duo-unix
+  shell: ./configure --with-pam --prefix=/usr && make && sudo make install
+  args:
+    chdir: /tmp/duo_unix
+
+- name: Install duo_unix config
+  template: src=login_duo.conf.j2 dest=/etc/duo/pam_duo.conf owner=sshd group=0 mode=0600
 
 - name: Enable duo security for remote logins
   lineinfile: dest=/etc/ssh/sshd_config regexp=^ForceCommand line="ForceCommand /usr/sbin/login_duo"
