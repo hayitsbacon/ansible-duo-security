@@ -3,7 +3,7 @@
 
 - name: Apply duo role
   hosts: all
-  user: root
+  become: true
 
   roles:
     - duo_security
